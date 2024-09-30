@@ -12,3 +12,9 @@ fn main() {
 
     println!("{:#?}", command)
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn dummy() {}
+}
