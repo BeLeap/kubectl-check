@@ -30,11 +30,17 @@ mod tests {
 
         #[test]
         fn it_should_get_context_from_command() {
-            let command = vec![
-                "kubectl".to_string(),
-                "--context".to_string(),
-                "test".to_string(),
-            ];
+            let command = ["kubectl", "--context", "test", "get", "pods"]
+                .map(|it| it.to_string())
+                .to_vec();
+            let result = get_context(command.iter().collect());
+
+            assert_eq!(result.unwrap(), "test");
+        }
+
+        #[test]
+        fn it_should_get_context_from_kube_context_if_not_exists_in_command() {
+            let command = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
             let result = get_context(command.iter().collect());
 
             assert_eq!(result.unwrap(), "test");
