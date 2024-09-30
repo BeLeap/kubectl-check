@@ -13,8 +13,11 @@ fn main() {
     println!("{:#?}", command)
 }
 
-fn get_context(command: Vec<&String>) -> String {
-    todo!()
+fn get_context(command: Vec<&String>) -> Option<String> {
+    return command
+        .iter()
+        .position(|&fragment| fragment == "--context")
+        .and_then(|index| command.get(index + 1).map(|it| it.to_string()));
 }
 
 #[cfg(test)]
@@ -27,13 +30,14 @@ mod tests {
 
         #[test]
         fn it_should_get_context_from_command() {
-            let result = get_context(vec![
-                &"kubectl".to_string(),
-                &"--context".to_string(),
-                &"test".to_string(),
-            ]);
+            let command = vec![
+                "kubectl".to_string(),
+                "--context".to_string(),
+                "test".to_string(),
+            ];
+            let result = get_context(command.iter().collect());
 
-            assert_eq!(result, "test");
+            assert_eq!(result.unwrap(), "test");
         }
     }
 }
