@@ -51,7 +51,7 @@ jobs:
     - name: Download binaries
       uses: actions/download-artifact@v4
       with:
-        name: '*-binary'
+        pattern: '*-binary'
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
