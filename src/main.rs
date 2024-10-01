@@ -1,24 +1,46 @@
 use std::{
-    env, fs,
+    env,
+    error::Error,
+    fmt, fs,
     io::{self, Write},
-    process::Command,
+    process::{Command, ExitStatus},
 };
 
 use atty::Stream;
 use yaml_rust2::YamlLoader;
 
 #[derive(Debug)]
-enum Error {
+enum KubectlCheckError {
+    KubeconfigIo(io::Error),
+    KubeconfigParse(yaml_rust2::ScanError),
     NotConfirmed,
-    UnsuccessfulKubectl,
+    UnsuccessfulKubectl(ExitStatus),
 }
 
-fn main() -> Result<(), Error> {
+impl Error for KubectlCheckError {}
+impl fmt::Display for KubectlCheckError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            KubectlCheckError::KubeconfigIo(ref err) => {
+                write!(f, "Could not read kubeconfig: {}", err)
+            }
+            KubectlCheckError::KubeconfigParse(ref err) => {
+                write!(f, "Could not parse kubeconfig: {}", err)
+            }
+            KubectlCheckError::NotConfirmed => write!(f, "Execution cancelled."),
+            KubectlCheckError::UnsuccessfulKubectl(status) => {
+                write!(f, "kubectl exited with status: {}", status)
+            }
+        }
+    }
+}
+
+fn main() -> Result<(), KubectlCheckError> {
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0);
 
     if atty::is(Stream::Stdout) {
-        let kube_config = read_kube_config();
+        let kube_config = read_kube_config()?;
         let metadata = extract_metadata(kube_config, &args);
 
         print!(
@@ -34,7 +56,7 @@ fn main() -> Result<(), Error> {
         };
 
         if buffer.trim() != "Y" {
-            return Err(Error::NotConfirmed);
+            return Err(KubectlCheckError::NotConfirmed);
         }
     }
 
@@ -47,7 +69,7 @@ fn main() -> Result<(), Error> {
         return Ok(());
     }
 
-    return Err(Error::UnsuccessfulKubectl);
+    return Err(KubectlCheckError::UnsuccessfulKubectl(status));
 }
 
 #[derive(Clone, Debug)]
@@ -107,14 +129,15 @@ fn extract_metadata(kube_config: KubeConfig, args: &Vec<String>) -> KubeMetadata
     }
 }
 
-fn read_kube_config() -> KubeConfig {
+fn read_kube_config() -> Result<KubeConfig, KubectlCheckError> {
     let path = env::var("KUBECONFIG").unwrap_or(format!(
         "{}/.kube/config",
         env::var("HOME").unwrap_or("~".to_string())
     ));
-    let contents = fs::read_to_string(path).expect("could not read kubeconfig");
+    let contents = fs::read_to_string(path).map_err(|err| KubectlCheckError::KubeconfigIo(err))?;
 
-    let documents = YamlLoader::load_from_str(&contents).unwrap();
+    let documents = YamlLoader::load_from_str(&contents)
+        .map_err(|err| KubectlCheckError::KubeconfigParse(err))?;
     let document = &documents[0];
 
     let contexts = &document["contexts"]
@@ -130,10 +153,10 @@ fn read_kube_config() -> KubeConfig {
         })
         .collect::<Vec<_>>();
 
-    KubeConfig {
+    Ok(KubeConfig {
         current_context: document["current-context"].as_str().unwrap().to_string(),
         contexts: contexts.clone(),
-    }
+    })
 }
 
 #[cfg(test)]
