@@ -13,8 +13,17 @@ fn main() {
     println!("{:#?}", command)
 }
 
+struct KubeContext {
+    cluster: String,
+}
+
+struct KubeContexts {
+    contexts: Vec<KubeContext>,
+}
+
 struct KubeConfig {
     current_context: String,
+    contexts: KubeContexts,
 }
 
 fn get_context(kube_config: KubeConfig, command: Vec<&String>) -> String {
@@ -29,12 +38,13 @@ fn get_context(kube_config: KubeConfig, command: Vec<&String>) -> String {
 #[cfg(test)]
 mod tests {
     mod get_context {
-        use crate::{get_context, KubeConfig};
+        use crate::{get_context, KubeConfig, KubeContexts};
 
         #[test]
         fn it_should_get_context_from_command() {
             let kube_config = KubeConfig {
                 current_context: "context-from-kube-config".to_string(),
+                contexts: KubeContexts { contexts: vec![] },
             };
             let command = [
                 "kubectl",
@@ -54,6 +64,7 @@ mod tests {
         fn it_should_get_context_from_kube_context_if_not_exists_in_command() {
             let kube_config = KubeConfig {
                 current_context: "context-from-kube-config".to_string(),
+                contexts: KubeContexts { contexts: vec![] },
             };
             let command = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
             let result = get_context(kube_config, command.iter().collect());
