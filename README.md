@@ -1,5 +1,7 @@
 # kubectl-check
 
+![Example](./docs/example.png)
+
 A CLI tool to prompt users for confirmation before running potentially unsafe kubectl commands.
 
 ## Installation
