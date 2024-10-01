@@ -1,4 +1,7 @@
-use std::{env, fs};
+use std::{
+    env, fs,
+    io::{self, Write},
+};
 
 use atty::Stream;
 use yaml_rust2::YamlLoader;
@@ -10,7 +13,19 @@ fn main() {
         let kube_config = read_kube_config();
         let metadata = extract_metadata(kube_config, command);
 
-        println!("{:#?}", metadata)
+        print!(
+            "Running command over {}({}) (Y/n): ",
+            metadata.current_context, metadata.current_namespace
+        );
+        io::stdout().flush().expect("could not flush stdout");
+
+        let stdin = io::stdin();
+        let mut buffer = String::new();
+        if let Err(e) = stdin.read_line(&mut buffer) {
+            panic!("{}", e);
+        };
+
+        println!("{:#?}", buffer)
     }
 }
 
