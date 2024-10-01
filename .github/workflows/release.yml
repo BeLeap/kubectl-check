@@ -8,10 +8,16 @@ on:
 jobs:
   build:
     name: Build and Release Binaries
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.target.runs-on }}
     strategy:
       matrix:
-        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin]
+        target: 
+          - runs-on: ubuntu-latest
+            triplet: x86_64-unknown-linux-gnu
+          - runs-on: ubuntu-latest
+            triplet: aarch64-unknown-linux-gnu
+          - runs-on: macos-latest
+            triplet: aarch64-apple-darwin
 
     steps:
     - name: Checkout code
@@ -21,20 +27,20 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-        target: ${{ matrix.target }}
+        target: ${{ matrix.target.triplet }}
         override: true
 
     - name: Install Cross for cross-compilation
       run: cargo install cross
 
-    - name: Build for ${{ matrix.target }}
-      run: cross build --release --target ${{ matrix.target }}
+    - name: Build for ${{ matrix.target.triplet }}
+      run: cross build --release --target ${{ matrix.target.triplet }}
 
     - name: Upload binary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.target }}-binary
-        path: target/${{ matrix.target }}/release/kubectl-check
+        name: ${{ matrix.target.triplet }}-binary
+        path: target/${{ matrix.target.triplet }}/release/kubectl-check
 
   release:
     name: Create GitHub Release
@@ -42,13 +48,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
     - name: Download binaries
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
-        name: ${{ matrix.target }}-binary
+        name: '*-binary'
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
