@@ -13,13 +13,14 @@ enum KubectlCheckError {
     KubeconfigIo(io::Error),
     KubeconfigParse(yaml_rust2::ScanError),
     MalformedKubeconfig,
+    CurrentContextNotFound(String),
     NotConfirmed,
     UnsuccessfulKubectl(ExitStatus),
 }
 
 impl fmt::Display for KubectlCheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
+        match self {
             KubectlCheckError::KubeconfigIo(ref err) => {
                 write!(f, "Could not read kubeconfig: {}", err)
             }
@@ -31,6 +32,9 @@ impl fmt::Display for KubectlCheckError {
                 write!(f, "kubectl exited with status: {}", status)
             }
             KubectlCheckError::MalformedKubeconfig => write!(f, "Malformed kubeconfig"),
+            KubectlCheckError::CurrentContextNotFound(current_context) => {
+                write!(f, "Context not found: {}", current_context)
+            }
         }
     }
 }
@@ -49,7 +53,7 @@ fn main() -> KubectlCheckResult<()> {
 
     if atty::is(Stream::Stdout) {
         let kube_config = read_kube_config()?;
-        let metadata = extract_metadata(kube_config, &args);
+        let metadata = extract_metadata(kube_config, &args)?;
 
         print!(
             "Running command over {}({}) (Y/n): ",
@@ -103,7 +107,10 @@ struct KubeMetadata {
     current_namespace: String,
 }
 
-fn extract_metadata(kube_config: KubeConfig, args: &Vec<String>) -> KubeMetadata {
+fn extract_metadata(
+    kube_config: KubeConfig,
+    args: &Vec<String>,
+) -> KubectlCheckResult<KubeMetadata> {
     let mut context_from_command = None;
     let mut namespace_from_command = None;
 
@@ -124,17 +131,19 @@ fn extract_metadata(kube_config: KubeConfig, args: &Vec<String>) -> KubeMetadata
             .contexts
             .iter()
             .find(|&context| context.name == current_context)
-            .expect("Malformed kubeconfig current context not found!!")
+            .ok_or(KubectlCheckError::CurrentContextNotFound(
+                current_context.clone(),
+            ))?
             .context
             .namespace
             .clone()
             .unwrap_or("default".to_string()),
     );
 
-    KubeMetadata {
+    Ok(KubeMetadata {
         current_context,
         current_namespace,
-    }
+    })
 }
 
 fn read_kube_config() -> KubectlCheckResult<KubeConfig> {
