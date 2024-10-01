@@ -1,7 +1,7 @@
 use std::{
     env, fs,
     io::{self, Write},
-    process::{Command, ExitStatus},
+    process::Command,
 };
 
 use atty::Stream;
@@ -10,7 +10,7 @@ use yaml_rust2::YamlLoader;
 #[derive(Debug)]
 enum Error {
     NotConfirmed,
-    UnsuccessfulKubectl(ExitStatus),
+    UnsuccessfulKubectl,
 }
 
 fn main() -> Result<(), Error> {
@@ -47,7 +47,7 @@ fn main() -> Result<(), Error> {
         return Ok(());
     }
 
-    return Err(Error::UnsuccessfulKubectl(status));
+    return Err(Error::UnsuccessfulKubectl);
 }
 
 #[derive(Clone, Debug)]
