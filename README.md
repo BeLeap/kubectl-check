@@ -4,7 +4,7 @@
 
 A CLI tool to prompt users for confirmation before running potentially unsafe kubectl commands.
 
-> [!NOTE]
+> [!IMPORTANT]
 > The prompt will be disabled if the command is excuted in non-interactive terminal.
 
 ## Installation
