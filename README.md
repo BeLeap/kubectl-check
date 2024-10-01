@@ -1,11 +1,15 @@
 # kubectl-check
 
-Ask to proceed with current context and namespace before running unsafe kubectl command.
+A CLI tool to prompt users for confirmation before running potentially unsafe kubectl commands.
 
 ## Installation
 
-- get binary from [release](https://github.com/beleap/kubectl-check/releases)
-- `brew install beleap/tap/kubectl-check`
+- **Download the binary from releases**
+  Head over to the [releases page](https://github.com/beleap/kubectl-check/releases) to download the binary.
+- **Using homebrew**
+  ```bash
+  brew install beleap/tap/kubectl-check
+  ```
 
 ## Tips
 
