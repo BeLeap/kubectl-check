@@ -1,6 +1,7 @@
 use std::{
     env, fs,
     io::{self, Write},
+    process::Command,
 };
 
 use atty::Stream;
@@ -12,11 +13,11 @@ enum Errors {
 }
 
 fn main() -> Result<(), Errors> {
-    let command = std::env::args().collect();
+    let args = std::env::args().collect();
 
     if atty::is(Stream::Stdout) {
         let kube_config = read_kube_config();
-        let metadata = extract_metadata(kube_config, command);
+        let metadata = extract_metadata(kube_config, &args);
 
         print!(
             "Running command over {}({}) (Y/n): ",
@@ -34,6 +35,11 @@ fn main() -> Result<(), Errors> {
             return Err(Errors::NotConfirmed);
         }
     }
+
+    let _ = Command::new("kubectl")
+        .args(args)
+        .spawn()
+        .expect("could not spawn kubectl");
 
     return Ok(());
 }
@@ -61,11 +67,11 @@ struct KubeMetadata {
     current_namespace: String,
 }
 
-fn extract_metadata(kube_config: KubeConfig, command: Vec<String>) -> KubeMetadata {
+fn extract_metadata(kube_config: KubeConfig, args: &Vec<String>) -> KubeMetadata {
     let mut context_from_command = None;
     let mut namespace_from_command = None;
 
-    let mut command_iter = command.iter();
+    let mut command_iter = args.iter();
     while let Some(fragment) = command_iter.next() {
         if fragment == "--context" {
             context_from_command = command_iter.next().map(|it| it.to_string());
@@ -140,7 +146,7 @@ mod tests {
                     },
                 }],
             };
-            let command = [
+            let args = [
                 "kubectl",
                 "--context",
                 "context-from-command",
@@ -149,7 +155,7 @@ mod tests {
             ]
             .map(|it| it.to_string())
             .to_vec();
-            let result = extract_metadata(kube_config, command);
+            let result = extract_metadata(kube_config, &args);
 
             assert_eq!(result.current_context, "context-from-command");
             assert_eq!(result.current_namespace, "namespace-from-kube-config");
@@ -166,8 +172,8 @@ mod tests {
                     },
                 }],
             };
-            let command = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
-            let result = extract_metadata(kube_config, command);
+            let args = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
+            let result = extract_metadata(kube_config, &args);
 
             assert_eq!(result.current_context, "context-from-kube-config");
             assert_eq!(result.current_namespace, "namespace-from-kube-config");
