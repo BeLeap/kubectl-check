@@ -1,19 +1,21 @@
 use std::{
     env, fs,
     io::{self, Write},
-    process::Command,
+    process::{Command, ExitStatus},
 };
 
 use atty::Stream;
 use yaml_rust2::YamlLoader;
 
 #[derive(Debug)]
-enum Errors {
+enum Error {
     NotConfirmed,
+    UnsuccessfulKubectl(ExitStatus),
 }
 
-fn main() -> Result<(), Errors> {
-    let args = std::env::args().collect();
+fn main() -> Result<(), Error> {
+    let mut args: Vec<String> = std::env::args().collect();
+    args.remove(0);
 
     if atty::is(Stream::Stdout) {
         let kube_config = read_kube_config();
@@ -32,16 +34,20 @@ fn main() -> Result<(), Errors> {
         };
 
         if buffer.trim() != "Y" {
-            return Err(Errors::NotConfirmed);
+            return Err(Error::NotConfirmed);
         }
     }
 
-    let _ = Command::new("kubectl")
-        .args(args)
-        .spawn()
-        .expect("could not spawn kubectl");
+    let mut command = Command::new("kubectl");
+    command.args(args);
 
-    return Ok(());
+    let status = command.status().expect("could not execute kubectl");
+
+    if status.success() {
+        return Ok(());
+    }
+
+    return Err(Error::UnsuccessfulKubectl(status));
 }
 
 #[derive(Clone, Debug)]
