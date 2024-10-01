@@ -13,11 +13,17 @@ fn main() {
     println!("{:#?}", command)
 }
 
-fn get_context(command: Vec<&String>) -> Option<String> {
-    return command
+struct KubeConfig {
+    current_context: String,
+}
+
+fn get_context(kube_config: KubeConfig, command: Vec<&String>) -> String {
+    let context_from_command = command
         .iter()
         .position(|&fragment| fragment == "--context")
         .and_then(|index| command.get(index + 1).map(|it| it.to_string()));
+
+    context_from_command.unwrap_or(kube_config.current_context)
 }
 
 #[cfg(test)]
@@ -26,24 +32,36 @@ mod tests {
     fn dummy() {}
 
     mod get_context {
-        use crate::get_context;
+        use crate::{get_context, KubeConfig};
 
         #[test]
         fn it_should_get_context_from_command() {
-            let command = ["kubectl", "--context", "test", "get", "pods"]
-                .map(|it| it.to_string())
-                .to_vec();
-            let result = get_context(command.iter().collect());
+            let kube_config = KubeConfig {
+                current_context: "context-from-kube-config".to_string(),
+            };
+            let command = [
+                "kubectl",
+                "--context",
+                "context-from-command",
+                "get",
+                "pods",
+            ]
+            .map(|it| it.to_string())
+            .to_vec();
+            let result = get_context(kube_config, command.iter().collect());
 
-            assert_eq!(result.unwrap(), "test");
+            assert_eq!(result, "context-from-command");
         }
 
         #[test]
         fn it_should_get_context_from_kube_context_if_not_exists_in_command() {
+            let kube_config = KubeConfig {
+                current_context: "context-from-kube-config".to_string(),
+            };
             let command = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
-            let result = get_context(command.iter().collect());
+            let result = get_context(kube_config, command.iter().collect());
 
-            assert_eq!(result.unwrap(), "test");
+            assert_eq!(result, "context-from-kube-config");
         }
     }
 }
