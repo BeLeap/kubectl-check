@@ -26,13 +26,21 @@ struct KubeConfig {
     contexts: KubeContexts,
 }
 
-fn extract_metadata(kube_config: KubeConfig, command: Vec<&String>) -> String {
+struct KubeMetadata {
+    context: String,
+    namespace: String,
+}
+
+fn extract_metadata(kube_config: KubeConfig, command: Vec<&String>) -> KubeMetadata {
     let context_from_command = command
         .iter()
         .position(|&fragment| fragment == "--context")
         .and_then(|index| command.get(index + 1).map(|it| it.to_string()));
 
-    context_from_command.unwrap_or(kube_config.current_context)
+    KubeMetadata {
+        context: context_from_command.unwrap_or(kube_config.current_context),
+        namespace: todo!(),
+    }
 }
 
 #[cfg(test)]
@@ -57,7 +65,7 @@ mod tests {
             .to_vec();
             let result = extract_metadata(kube_config, command.iter().collect());
 
-            assert_eq!(result, "context-from-command");
+            assert_eq!(result.context, "context-from-command");
         }
 
         #[test]
@@ -69,7 +77,7 @@ mod tests {
             let command = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
             let result = extract_metadata(kube_config, command.iter().collect());
 
-            assert_eq!(result, "context-from-kube-config");
+            assert_eq!(result.context, "context-from-kube-config");
         }
     }
 }
