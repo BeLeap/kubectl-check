@@ -6,6 +6,8 @@ fn main() {
     let command = std::env::args().collect();
 
     let kube_config = read_kube_config();
+    println!("{:#?}", kube_config);
+
     let metadata = extract_metadata(kube_config, command);
 
     println!("{:#?}", metadata)
@@ -92,7 +94,7 @@ fn read_kube_config() -> KubeConfig {
         .collect::<Vec<_>>();
 
     KubeConfig {
-        current_context: document["current_context"].as_str().unwrap().to_string(),
+        current_context: document["current-context"].as_str().unwrap().to_string(),
         contexts: contexts.clone(),
     }
 }
@@ -122,7 +124,7 @@ mod tests {
             ]
             .map(|it| it.to_string())
             .to_vec();
-            let result = extract_metadata(kube_config, command.iter().collect());
+            let result = extract_metadata(kube_config, command);
 
             assert_eq!(result.current_context, "context-from-command");
             assert_eq!(result.current_namespace, "namespace-from-kube-config");
@@ -140,7 +142,7 @@ mod tests {
                 }],
             };
             let command = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
-            let result = extract_metadata(kube_config, command.iter().collect());
+            let result = extract_metadata(kube_config, command);
 
             assert_eq!(result.current_context, "context-from-kube-config");
             assert_eq!(result.current_namespace, "namespace-from-kube-config");
