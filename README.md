@@ -5,8 +5,10 @@ A CLI tool to prompt users for confirmation before running potentially unsafe ku
 ## Installation
 
 - **Download the binary from releases**
+
   Head over to the [releases page](https://github.com/beleap/kubectl-check/releases) to download the binary.
 - **Using homebrew**
+
   ```bash
   brew install beleap/tap/kubectl-check
   ```
