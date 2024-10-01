@@ -52,15 +52,12 @@ jobs:
       with:
         pattern: '*-binary'
 
-    - run: |
-        ls -alR
-
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          target/x86_64-unknown-linux-gnu/release/kubectl-check
-          target/aarch64-unknown-linux-gnu/release/kubectl-check
-          target/aarch64-apple-darwin/release/kubectl-check
+          x86_64-unknown-linux-gnu-binary/kubectl-check
+          aarch64-unknown-linux-gnu-binary/kubectl-check
+          aarch64-apple-darwin-binary/kubectl-check
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
