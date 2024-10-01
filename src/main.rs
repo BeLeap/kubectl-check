@@ -14,6 +14,7 @@ enum KubectlCheckError {
     KubeconfigParse(yaml_rust2::ScanError),
     MalformedKubeconfig,
     CurrentContextNotFound(String),
+    NoCommandSpecified,
     NotConfirmed,
     UnsuccessfulKubectl(ExitStatus),
 }
@@ -35,6 +36,7 @@ impl fmt::Display for KubectlCheckError {
             KubectlCheckError::CurrentContextNotFound(current_context) => {
                 write!(f, "Context not found: {}", current_context)
             }
+            KubectlCheckError::NoCommandSpecified => write!(f, "No command for kubectl sepcified"),
         }
     }
 }
@@ -55,20 +57,26 @@ fn main() -> KubectlCheckResult<()> {
         let kube_config = read_kube_config()?;
         let metadata = extract_metadata(kube_config, &args)?;
 
-        print!(
-            "Running command over {}({}) (Y/n): ",
-            metadata.current_context, metadata.current_namespace
-        );
-        io::stdout().flush().expect("could not flush stdout");
+        let unsafe_command_list = [
+            "edit", "delete", "rollout", "scale", "cordon", "uncordon", "drain", "taint", "exec",
+        ];
 
-        let stdin = io::stdin();
-        let mut buffer = String::new();
-        if let Err(e) = stdin.read_line(&mut buffer) {
-            panic!("{}", e);
-        };
+        if unsafe_command_list.contains(&metadata.command.as_str()) {
+            print!(
+                "Running command over {}({}) (Y/n): ",
+                metadata.target_context, metadata.target_namespace
+            );
+            io::stdout().flush().expect("could not flush stdout");
 
-        if buffer.trim() != "Y" {
-            return Err(KubectlCheckError::NotConfirmed);
+            let stdin = io::stdin();
+            let mut buffer = String::new();
+            if let Err(e) = stdin.read_line(&mut buffer) {
+                panic!("{}", e);
+            };
+
+            if buffer.trim() != "Y" {
+                return Err(KubectlCheckError::NotConfirmed);
+            }
         }
     }
 
@@ -102,37 +110,43 @@ struct KubeConfig {
 }
 
 #[derive(Clone, Debug)]
-struct KubeMetadata {
-    current_context: String,
-    current_namespace: String,
+struct KubectlMetadata {
+    target_context: String,
+    target_namespace: String,
+    command: String,
 }
 
 fn extract_metadata(
     kube_config: KubeConfig,
     args: &Vec<String>,
-) -> KubectlCheckResult<KubeMetadata> {
+) -> KubectlCheckResult<KubectlMetadata> {
     let mut context_from_command = None;
     let mut namespace_from_command = None;
+    let mut command = None;
 
     let mut command_iter = args.iter();
     while let Some(fragment) = command_iter.next() {
-        if fragment == "--context" {
-            context_from_command = command_iter.next().map(|it| it.to_string());
-        }
+        if fragment.starts_with("--") {
+            if fragment == "--context" {
+                context_from_command = command_iter.next().map(|it| it.to_string());
+            }
 
-        if fragment == "--namespace" {
-            namespace_from_command = command_iter.next().map(|it| it.to_string());
+            if fragment == "--namespace" {
+                namespace_from_command = command_iter.next().map(|it| it.to_string());
+            }
+        } else if command.is_none() {
+            command = Some(fragment.to_string())
         }
     }
 
-    let current_context = context_from_command.unwrap_or(kube_config.current_context);
-    let current_namespace = namespace_from_command.unwrap_or(
+    let target_context = context_from_command.unwrap_or(kube_config.current_context);
+    let target_namespace = namespace_from_command.unwrap_or(
         kube_config
             .contexts
             .iter()
-            .find(|&context| context.name == current_context)
+            .find(|&context| context.name == target_context)
             .ok_or(KubectlCheckError::CurrentContextNotFound(
-                current_context.clone(),
+                target_context.clone(),
             ))?
             .context
             .namespace
@@ -140,9 +154,10 @@ fn extract_metadata(
             .unwrap_or("default".to_string()),
     );
 
-    Ok(KubeMetadata {
-        current_context,
-        current_namespace,
+    Ok(KubectlMetadata {
+        target_context,
+        target_namespace,
+        command: command.ok_or(KubectlCheckError::NoCommandSpecified)?,
     })
 }
 
@@ -211,8 +226,8 @@ mod tests {
             .to_vec();
             let result = extract_metadata(kube_config, &args).unwrap();
 
-            assert_eq!(result.current_context, "context-from-command");
-            assert_eq!(result.current_namespace, "namespace-from-kube-config");
+            assert_eq!(result.target_context, "context-from-command");
+            assert_eq!(result.target_namespace, "namespace-from-kube-config");
         }
 
         #[test]
@@ -229,8 +244,8 @@ mod tests {
             let args = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
             let result = extract_metadata(kube_config, &args).unwrap();
 
-            assert_eq!(result.current_context, "context-from-kube-config");
-            assert_eq!(result.current_namespace, "namespace-from-kube-config");
+            assert_eq!(result.target_context, "context-from-kube-config");
+            assert_eq!(result.target_namespace, "namespace-from-kube-config");
         }
     }
 }
