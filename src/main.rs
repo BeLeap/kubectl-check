@@ -134,12 +134,13 @@ fn extract_metadata(
     let mut command_iter = args.iter();
     while let Some(fragment) = command_iter.next() {
         if fragment.starts_with("--") {
+            let next_fragment = command_iter.next();
             if fragment == "--context" {
-                context_from_command = command_iter.next().map(|it| it.to_string());
+                context_from_command = next_fragment.map(|it| it.to_string());
             }
 
             if fragment == "--namespace" {
-                namespace_from_command = command_iter.next().map(|it| it.to_string());
+                namespace_from_command = next_fragment.map(|it| it.to_string());
             }
         } else if command.is_none() {
             command = Some(fragment.to_string())
