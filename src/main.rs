@@ -209,7 +209,7 @@ mod tests {
             ]
             .map(|it| it.to_string())
             .to_vec();
-            let result = extract_metadata(kube_config, &args);
+            let result = extract_metadata(kube_config, &args).unwrap();
 
             assert_eq!(result.current_context, "context-from-command");
             assert_eq!(result.current_namespace, "namespace-from-kube-config");
@@ -227,7 +227,7 @@ mod tests {
                 }],
             };
             let args = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
-            let result = extract_metadata(kube_config, &args);
+            let result = extract_metadata(kube_config, &args).unwrap();
 
             assert_eq!(result.current_context, "context-from-kube-config");
             assert_eq!(result.current_namespace, "namespace-from-kube-config");
