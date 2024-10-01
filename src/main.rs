@@ -135,7 +135,7 @@ fn extract_metadata(kube_config: KubeConfig, args: &Vec<String>) -> KubeMetadata
     }
 }
 
-fn read_kube_config() -> Result<KubeConfig, KubectlCheckError> {
+fn read_kube_config() -> KubectlCheckResult<KubeConfig> {
     let path = env::var("KUBECONFIG").unwrap_or(format!(
         "{}/.kube/config",
         env::var("HOME").unwrap_or("~".to_string())
