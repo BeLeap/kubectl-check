@@ -28,9 +28,6 @@ fn get_context(kube_config: KubeConfig, command: Vec<&String>) -> String {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn dummy() {}
-
     mod get_context {
         use crate::{get_context, KubeConfig};
 
