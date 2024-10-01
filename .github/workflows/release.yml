@@ -1,0 +1,61 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'  # 태그가 'v'로 시작하는 경우에만 트리거 됩니다.
+
+jobs:
+  build:
+    name: Build and Release Binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: ${{ matrix.target }}
+        override: true
+
+    - name: Install Cross for cross-compilation
+      run: cargo install cross
+
+    - name: Build for ${{ matrix.target }}
+      run: cross build --release --target ${{ matrix.target }}
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.target }}-binary
+        path: target/${{ matrix.target }}/release/kubectl-check
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Download binaries
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ matrix.target }}-binary
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          target/x86_64-unknown-linux-gnu/release/kubectl-check
+          target/aarch64-unknown-linux-gnu/release/kubectl-check
+          target/aarch64-apple-darwin/release/kubectl-check
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
