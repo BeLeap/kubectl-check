@@ -44,6 +44,20 @@ jobs:
         name: ${{ matrix.target.triplet }}-binary
         path: target/${{ matrix.target.triplet }}/release/kubectl-check
 
+  publish:
+    name: Publish to crates.io
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+
     - name: Publish to crates.io
       run: cargo publish
       env:
