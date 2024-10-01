@@ -22,5 +22,5 @@ A CLI tool to prompt users for confirmation before running potentially unsafe ku
   ```
 - **Configure unsafe commands**
 
-  can be configured with `KUBECTL_CHECK_UNSAFE` environment variable  with comma delimited string.
+  Can be configured with `KUBECTL_CHECK_UNSAFE` environment variable. Provide a comma-delimited string like `edit,scale`.
   - Default unsafe commands can be found [here](https://github.com/BeLeap/kubectl-check/blob/main/src/main.rs#L63-L66).
