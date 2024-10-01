@@ -57,9 +57,16 @@ fn main() -> KubectlCheckResult<()> {
         let kube_config = read_kube_config()?;
         let metadata = extract_metadata(kube_config, &args)?;
 
-        let unsafe_command_list = [
-            "edit", "delete", "rollout", "scale", "cordon", "uncordon", "drain", "taint", "exec",
-        ];
+        let unsafe_command_list_env =
+            env::var("KUBECTL_CHECK_UNSAFE").unwrap_or_else(|_| "".to_string());
+        let unsafe_command_list = if unsafe_command_list_env.is_empty() {
+            vec![
+                "edit", "delete", "rollout", "scale", "cordon", "uncordon", "drain", "taint",
+                "exec",
+            ]
+        } else {
+            unsafe_command_list_env.split(",").collect()
+        };
 
         if unsafe_command_list.contains(&metadata.command.as_str()) {
             print!(
