@@ -26,7 +26,7 @@ struct KubeConfig {
     contexts: KubeContexts,
 }
 
-fn get_context(kube_config: KubeConfig, command: Vec<&String>) -> String {
+fn extract_metadata(kube_config: KubeConfig, command: Vec<&String>) -> String {
     let context_from_command = command
         .iter()
         .position(|&fragment| fragment == "--context")
@@ -37,8 +37,8 @@ fn get_context(kube_config: KubeConfig, command: Vec<&String>) -> String {
 
 #[cfg(test)]
 mod tests {
-    mod get_context {
-        use crate::{get_context, KubeConfig, KubeContexts};
+    mod extract_metadata {
+        use crate::{extract_metadata, KubeConfig, KubeContexts};
 
         #[test]
         fn it_should_get_context_from_command() {
@@ -55,7 +55,7 @@ mod tests {
             ]
             .map(|it| it.to_string())
             .to_vec();
-            let result = get_context(kube_config, command.iter().collect());
+            let result = extract_metadata(kube_config, command.iter().collect());
 
             assert_eq!(result, "context-from-command");
         }
@@ -67,7 +67,7 @@ mod tests {
                 contexts: KubeContexts { contexts: vec![] },
             };
             let command = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
-            let result = get_context(kube_config, command.iter().collect());
+            let result = extract_metadata(kube_config, command.iter().collect());
 
             assert_eq!(result, "context-from-kube-config");
         }
