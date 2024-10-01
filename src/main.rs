@@ -6,7 +6,12 @@ use std::{
 use atty::Stream;
 use yaml_rust2::YamlLoader;
 
-fn main() {
+#[derive(Debug)]
+enum Errors {
+    NotConfirmed,
+}
+
+fn main() -> Result<(), Errors> {
     let command = std::env::args().collect();
 
     if atty::is(Stream::Stdout) {
@@ -25,8 +30,12 @@ fn main() {
             panic!("{}", e);
         };
 
-        println!("{:#?}", buffer)
+        if buffer.trim() != "Y" {
+            return Err(Errors::NotConfirmed);
+        }
     }
+
+    return Ok(());
 }
 
 #[derive(Clone, Debug)]
