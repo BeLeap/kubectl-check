@@ -6,8 +6,6 @@ fn main() {
     let command = std::env::args().collect();
 
     let kube_config = read_kube_config();
-    println!("{:#?}", kube_config);
-
     let metadata = extract_metadata(kube_config, command);
 
     println!("{:#?}", metadata)
