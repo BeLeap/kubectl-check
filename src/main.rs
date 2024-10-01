@@ -12,6 +12,7 @@ use yaml_rust2::YamlLoader;
 enum KubectlCheckError {
     KubeconfigIo(io::Error),
     KubeconfigParse(yaml_rust2::ScanError),
+    MalformedKubeconfig,
     NotConfirmed,
     UnsuccessfulKubectl(ExitStatus),
 }
@@ -29,6 +30,7 @@ impl fmt::Display for KubectlCheckError {
             KubectlCheckError::UnsuccessfulKubectl(status) => {
                 write!(f, "kubectl exited with status: {}", status)
             }
+            KubectlCheckError::MalformedKubeconfig => write!(f, "Malformed kubeconfig"),
         }
     }
 }
@@ -149,18 +151,26 @@ fn read_kube_config() -> KubectlCheckResult<KubeConfig> {
     let contexts = &document["contexts"]
         .clone()
         .into_iter()
-        .map(|context| KubeContext {
-            name: context["name"].as_str().unwrap().to_string(),
-            context: KubeContextMetadata {
-                namespace: context["context"]["namespace"]
+        .map(|context| {
+            Ok(KubeContext {
+                name: context["name"]
                     .as_str()
-                    .map(|it| it.to_string()),
-            },
+                    .ok_or(KubectlCheckError::MalformedKubeconfig)?
+                    .to_string(),
+                context: KubeContextMetadata {
+                    namespace: context["context"]["namespace"]
+                        .as_str()
+                        .map(|it| it.to_string()),
+                },
+            })
         })
-        .collect::<Vec<_>>();
+        .collect::<KubectlCheckResult<Vec<KubeContext>>>()?;
 
     Ok(KubeConfig {
-        current_context: document["current-context"].as_str().unwrap().to_string(),
+        current_context: document["current-context"]
+            .as_str()
+            .ok_or(KubectlCheckError::MalformedKubeconfig)?
+            .to_string(),
         contexts: contexts.clone(),
     })
 }
