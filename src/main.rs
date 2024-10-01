@@ -1,14 +1,17 @@
 use std::{env, fs};
 
+use atty::Stream;
 use yaml_rust2::YamlLoader;
 
 fn main() {
     let command = std::env::args().collect();
 
-    let kube_config = read_kube_config();
-    let metadata = extract_metadata(kube_config, command);
+    if atty::is(Stream::Stdout) {
+        let kube_config = read_kube_config();
+        let metadata = extract_metadata(kube_config, command);
 
-    println!("{:#?}", metadata)
+        println!("{:#?}", metadata)
+    }
 }
 
 #[derive(Clone, Debug)]
