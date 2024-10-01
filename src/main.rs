@@ -9,7 +9,6 @@ use std::{
 use atty::Stream;
 use yaml_rust2::YamlLoader;
 
-#[derive(Debug)]
 enum KubectlCheckError {
     KubeconfigIo(io::Error),
     KubeconfigParse(yaml_rust2::ScanError),
@@ -17,7 +16,6 @@ enum KubectlCheckError {
     UnsuccessfulKubectl(ExitStatus),
 }
 
-impl Error for KubectlCheckError {}
 impl fmt::Display for KubectlCheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
@@ -34,8 +32,16 @@ impl fmt::Display for KubectlCheckError {
         }
     }
 }
+impl fmt::Debug for KubectlCheckError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+impl Error for KubectlCheckError {}
 
-fn main() -> Result<(), KubectlCheckError> {
+type KubectlCheckResult<T> = Result<T, KubectlCheckError>;
+
+fn main() -> KubectlCheckResult<()> {
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0);
 
