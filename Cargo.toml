@@ -1,6 +1,8 @@
 [package]
 name = "kubectl-check"
 description = "Check for kubernetes metadata before executes command"
+homepage = "https://github.com/BeLeap/kubectl-check"
+repository = "https://github.com/BeLeap/kubectl-check"
 license = "MIT"
 version = "0.1.0"
 edition = "2021"
