@@ -53,6 +53,9 @@ jobs:
       with:
         pattern: '*-binary'
 
+    - run: |
+        ls -alR
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
