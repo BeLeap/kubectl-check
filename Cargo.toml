@@ -1,6 +1,6 @@
 [package]
 name = "kubectl-check"
-description = "Check for kubernetes metadata before executes command"
+description = "A CLI tool to prompt users for confirmation before running potentially unsafe kubectl commands."
 homepage = "https://github.com/BeLeap/kubectl-check"
 repository = "https://github.com/BeLeap/kubectl-check"
 license = "MIT"
