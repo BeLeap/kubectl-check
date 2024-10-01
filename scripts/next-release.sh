@@ -18,7 +18,9 @@ new_version="$head.$yearweek.$build"
 
 sed -i.bak "s/version = \"$current_version\"/version = \"$new_version\"/" Cargo.toml
 
-git add Cargo.toml $BUILD_FILE
+cargo check
+
+git add Cargo.toml Cargo.lock
 git commit -m "Release version $new_version"
 
 git tag "v$new_version"
