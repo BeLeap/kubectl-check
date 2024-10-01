@@ -13,46 +13,74 @@ fn main() {
     println!("{:#?}", command)
 }
 
-struct KubeContext {
-    cluster: String,
+struct KubeContextMetadata {
+    namespace: Option<String>,
 }
 
-struct KubeContexts {
-    contexts: Vec<KubeContext>,
+struct KubeContext {
+    name: String,
+    context: KubeContextMetadata,
 }
 
 struct KubeConfig {
     current_context: String,
-    contexts: KubeContexts,
+    contexts: Vec<KubeContext>,
 }
 
 struct KubeMetadata {
-    context: String,
-    namespace: String,
+    current_context: String,
+    current_namespace: String,
 }
 
 fn extract_metadata(kube_config: KubeConfig, command: Vec<&String>) -> KubeMetadata {
-    let context_from_command = command
-        .iter()
-        .position(|&fragment| fragment == "--context")
-        .and_then(|index| command.get(index + 1).map(|it| it.to_string()));
+    let mut context_from_command = None;
+    let mut namespace_from_command = None;
+
+    let mut command_iter = command.iter();
+    while let Some(&fragment) = command_iter.next() {
+        if fragment == "--context" {
+            context_from_command = command_iter.next().map(|it| it.to_string());
+        }
+
+        if fragment == "--namespace" {
+            namespace_from_command = command_iter.next().map(|it| it.to_string());
+        }
+    }
+
+    let current_context = context_from_command.unwrap_or(kube_config.current_context);
+    let current_namespace = namespace_from_command.unwrap_or(
+        kube_config
+            .contexts
+            .iter()
+            .find(|&context| context.name == current_context)
+            .expect("Malformed kubeconfig current context not found!!")
+            .context
+            .namespace
+            .clone()
+            .unwrap_or("default".to_string()),
+    );
 
     KubeMetadata {
-        context: context_from_command.unwrap_or(kube_config.current_context),
-        namespace: todo!(),
+        current_context,
+        current_namespace,
     }
 }
 
 #[cfg(test)]
 mod tests {
     mod extract_metadata {
-        use crate::{extract_metadata, KubeConfig, KubeContexts};
+        use crate::{extract_metadata, KubeConfig, KubeContext, KubeContextMetadata};
 
         #[test]
-        fn it_should_get_context_from_command() {
+        fn it_should_get_metadata_scenario_1() {
             let kube_config = KubeConfig {
                 current_context: "context-from-kube-config".to_string(),
-                contexts: KubeContexts { contexts: vec![] },
+                contexts: vec![KubeContext {
+                    name: "context-from-command".to_string(),
+                    context: KubeContextMetadata {
+                        namespace: Some("namespace-from-kube-config".to_string()),
+                    },
+                }],
             };
             let command = [
                 "kubectl",
@@ -65,19 +93,26 @@ mod tests {
             .to_vec();
             let result = extract_metadata(kube_config, command.iter().collect());
 
-            assert_eq!(result.context, "context-from-command");
+            assert_eq!(result.current_context, "context-from-command");
+            assert_eq!(result.current_namespace, "namespace-from-kube-config");
         }
 
         #[test]
-        fn it_should_get_context_from_kube_context_if_not_exists_in_command() {
+        fn it_should_get_metadata_scenario_2() {
             let kube_config = KubeConfig {
                 current_context: "context-from-kube-config".to_string(),
-                contexts: KubeContexts { contexts: vec![] },
+                contexts: vec![KubeContext {
+                    name: "context-from-kube-config".to_string(),
+                    context: KubeContextMetadata {
+                        namespace: Some("namespace-from-kube-config".to_string()),
+                    },
+                }],
             };
             let command = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
             let result = extract_metadata(kube_config, command.iter().collect());
 
-            assert_eq!(result.context, "context-from-kube-config");
+            assert_eq!(result.current_context, "context-from-kube-config");
+            assert_eq!(result.current_namespace, "namespace-from-kube-config");
         }
     }
 }
