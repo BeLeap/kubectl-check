@@ -1,6 +1,7 @@
 [package]
 name = "kubectl-check"
 description = "Check for kubernetes metadata before executes command"
+license = "MIT"
 version = "0.1.0"
 edition = "2021"
 
