@@ -15,6 +15,7 @@ A CLI tool to prompt users for confirmation before running potentially unsafe ku
 - **Using homebrew**
 
   ```bash
+  brew tap beleap/tap
   brew install beleap/tap/kubectl-check
   ```
 
