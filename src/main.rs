@@ -70,8 +70,8 @@ fn main() -> KubectlCheckResult<()> {
 
         if unsafe_command_list.contains(&metadata.command.as_str()) {
             print!(
-                "Running command over {}({}) (Y/n): ",
-                metadata.target_context, metadata.target_namespace
+                "Running {} over {}({}) (Y/n): ",
+                metadata.command, metadata.target_context, metadata.target_namespace
             );
             io::stdout().flush().expect("could not flush stdout");
 
