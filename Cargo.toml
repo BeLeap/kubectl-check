@@ -16,3 +16,4 @@ opt-level = "z"
 [dependencies]
 atty = "0.2.14"
 yaml-rust2 = "0.9.0"
+colored = "2"

@@ -7,6 +7,7 @@ use std::{
 };
 
 use atty::Stream;
+use colored::Colorize;
 use yaml_rust2::YamlLoader;
 
 enum KubectlCheckError {
@@ -71,7 +72,9 @@ fn main() -> KubectlCheckResult<()> {
         if unsafe_command_list.contains(&metadata.command.as_str()) {
             print!(
                 "Running {} over {}({}) (Y/n): ",
-                metadata.command, metadata.target_context, metadata.target_namespace
+                metadata.command.as_str().red().bold(),
+                metadata.target_context.as_str().green(),
+                metadata.target_namespace.as_str().green(),
             );
             io::stdout().flush().expect("could not flush stdout");
 
