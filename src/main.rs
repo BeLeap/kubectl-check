@@ -24,18 +24,18 @@ impl fmt::Display for KubectlCheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             KubectlCheckError::KubeconfigIo(ref err) => {
-                write!(f, "Could not read kubeconfig: {}", err)
+                write!(f, "Could not read kubeconfig: {err}")
             }
             KubectlCheckError::KubeconfigParse(ref err) => {
-                write!(f, "Could not parse kubeconfig: {}", err)
+                write!(f, "Could not parse kubeconfig: {err}")
             }
             KubectlCheckError::NotConfirmed => write!(f, "Execution cancelled."),
             KubectlCheckError::CommandFailed(status) => {
-                write!(f, "{}", status)
+                write!(f, "{status}")
             }
             KubectlCheckError::MalformedKubeconfig => write!(f, "Malformed kubeconfig"),
             KubectlCheckError::CurrentContextNotFound(current_context) => {
-                write!(f, "Context not found: {}", current_context)
+                write!(f, "Context not found: {current_context}")
             }
             KubectlCheckError::NoCommandSpecified => write!(f, "No command for kubectl sepcified"),
         }
