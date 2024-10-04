@@ -85,7 +85,7 @@ dependencies = [
 
 [[package]]
 name = "kubectl-check"
-version = "0.2439.5"
+version = "0.2439.6"
 dependencies = [
  "atty",
  "colored",
