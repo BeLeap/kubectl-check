@@ -17,7 +17,7 @@ enum KubectlCheckError {
     CurrentContextNotFound(String),
     NoCommandSpecified,
     NotConfirmed,
-    UnsuccessfulKubectl(ExitStatus),
+    CommandFailed(ExitStatus),
 }
 
 impl fmt::Display for KubectlCheckError {
@@ -30,8 +30,8 @@ impl fmt::Display for KubectlCheckError {
                 write!(f, "Could not parse kubeconfig: {}", err)
             }
             KubectlCheckError::NotConfirmed => write!(f, "Execution cancelled."),
-            KubectlCheckError::UnsuccessfulKubectl(status) => {
-                write!(f, "kubectl exited with status: {}", status)
+            KubectlCheckError::CommandFailed(status) => {
+                write!(f, "{}", status)
             }
             KubectlCheckError::MalformedKubeconfig => write!(f, "Malformed kubeconfig"),
             KubectlCheckError::CurrentContextNotFound(current_context) => {
@@ -98,7 +98,7 @@ fn main() -> KubectlCheckResult<()> {
         return Ok(());
     }
 
-    return Err(KubectlCheckError::UnsuccessfulKubectl(status));
+    return Err(KubectlCheckError::CommandFailed(status));
 }
 
 #[derive(Clone, Debug)]
