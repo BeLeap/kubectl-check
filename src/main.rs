@@ -63,7 +63,7 @@ fn main() -> KubectlCheckResult<()> {
         let unsafe_command_list = if unsafe_command_list_env.is_empty() {
             vec![
                 "edit", "delete", "rollout", "scale", "cordon", "uncordon", "drain", "taint",
-                "exec",
+                "exec", "create", "apply",
             ]
         } else {
             unsafe_command_list_env.split(",").collect()
