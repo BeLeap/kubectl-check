@@ -51,8 +51,7 @@ impl Error for KubectlCheckError {}
 type KubectlCheckResult<T> = Result<T, KubectlCheckError>;
 
 fn main() -> KubectlCheckResult<()> {
-    let mut args: Vec<String> = std::env::args().collect();
-    args.remove(0);
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
 
     if atty::is(Stream::Stdout) {
         let kube_config = read_kube_config()?;
