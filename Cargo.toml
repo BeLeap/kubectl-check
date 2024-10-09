@@ -4,7 +4,7 @@ description = "A CLI tool to prompt users for confirmation before running potent
 homepage = "https://github.com/BeLeap/kubectl-check"
 repository = "https://github.com/BeLeap/kubectl-check"
 license = "MIT"
-version = "0.2439.6"
+version = "0.2440.0"
 edition = "2021"
 
 [profile.release]
