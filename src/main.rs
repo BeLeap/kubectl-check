@@ -125,6 +125,22 @@ struct KubectlMetadata {
     command: String,
 }
 
+fn get_value(fragment: &str, prefix: &str, iter: &mut std::slice::Iter<String>) -> Option<String> {
+    if fragment == prefix {
+        let next_fragment = iter.next();
+        next_fragment.map(|it| it.to_string())
+    } else if fragment.starts_with(&format!("{}=", prefix)) {
+        Some(
+            fragment
+                .replace(&format!("{}=", prefix), "")
+                .trim()
+                .to_string(),
+        )
+    } else {
+        None
+    }
+}
+
 fn extract_metadata(
     kube_config: KubeConfig,
     args: &Vec<String>,
@@ -136,13 +152,15 @@ fn extract_metadata(
     let mut command_iter = args.iter();
     while let Some(fragment) = command_iter.next() {
         if fragment.starts_with("-") {
-            let next_fragment = command_iter.next();
-            if fragment == "--context" {
-                context_from_command = next_fragment.map(|it| it.to_string());
+            if let Some(value) = get_value(fragment, "--context", &mut command_iter) {
+                context_from_command = Some(value);
             }
 
-            if fragment == "--namespace" || fragment == "-n" {
-                namespace_from_command = next_fragment.map(|it| it.to_string());
+            if let Some(value) = get_value(fragment, "--namespace", &mut command_iter) {
+                namespace_from_command = Some(value)
+            }
+            if let Some(value) = get_value(fragment, "-n", &mut command_iter) {
+                namespace_from_command = Some(value)
             }
         } else if command.is_none() {
             command = Some(fragment.to_string())
