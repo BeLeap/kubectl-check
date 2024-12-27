@@ -7,14 +7,14 @@ use std::{
 use atty::Stream;
 use colored::Colorize;
 
+mod config;
 mod error;
-mod kubeconfig;
 
 fn main() -> error::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
     if atty::is(Stream::Stdout) {
-        let kube_config = kubeconfig::read()?;
+        let kube_config = config::kubeconfig::read()?;
         let metadata = extract_metadata(kube_config, &args)?;
 
         let unsafe_command_list_env =
@@ -85,7 +85,7 @@ fn get_value(fragment: &str, prefix: &str, iter: &mut std::slice::Iter<String>) 
 }
 
 fn extract_metadata(
-    kube_config: kubeconfig::KubeConfig,
+    kube_config: config::kubeconfig::KubeConfig,
     args: &Vec<String>,
 ) -> error::Result<KubectlMetadata> {
     let mut context_from_command = None;
