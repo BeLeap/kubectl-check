@@ -1,20 +1,20 @@
 use std::{
-    env, fs,
+    env,
     io::{self, Write},
     process::Command,
 };
 
 use atty::Stream;
 use colored::Colorize;
-use yaml_rust2::YamlLoader;
 
 mod error;
+mod kubeconfig;
 
 fn main() -> error::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
     if atty::is(Stream::Stdout) {
-        let kube_config = read_kube_config()?;
+        let kube_config = kubeconfig::read()?;
         let metadata = extract_metadata(kube_config, &args)?;
 
         let unsafe_command_list_env =
@@ -62,23 +62,6 @@ fn main() -> error::Result<()> {
 }
 
 #[derive(Clone, Debug)]
-struct KubeContextMetadata {
-    namespace: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-struct KubeContext {
-    name: String,
-    context: KubeContextMetadata,
-}
-
-#[derive(Clone, Debug)]
-struct KubeConfig {
-    current_context: String,
-    contexts: Vec<KubeContext>,
-}
-
-#[derive(Clone, Debug)]
 struct KubectlMetadata {
     target_context: String,
     target_namespace: String,
@@ -101,7 +84,10 @@ fn get_value(fragment: &str, prefix: &str, iter: &mut std::slice::Iter<String>) 
     }
 }
 
-fn extract_metadata(kube_config: KubeConfig, args: &Vec<String>) -> error::Result<KubectlMetadata> {
+fn extract_metadata(
+    kube_config: kubeconfig::KubeConfig,
+    args: &Vec<String>,
+) -> error::Result<KubectlMetadata> {
     let mut context_from_command = None;
     let mut namespace_from_command = None;
     let mut command = None;
@@ -142,93 +128,4 @@ fn extract_metadata(kube_config: KubeConfig, args: &Vec<String>) -> error::Resul
         target_namespace,
         command: command.ok_or(error::Error::NoCommandSpecified)?,
     })
-}
-
-fn read_kube_config() -> error::Result<KubeConfig> {
-    let path = env::var("KUBECONFIG").unwrap_or(format!(
-        "{}/.kube/config",
-        env::var("HOME").unwrap_or("~".to_string())
-    ));
-    let contents = fs::read_to_string(path).map_err(|err| error::Error::KubeconfigIo(err))?;
-
-    let documents =
-        YamlLoader::load_from_str(&contents).map_err(|err| error::Error::KubeconfigParse(err))?;
-    let document = &documents[0];
-
-    let contexts = &document["contexts"]
-        .clone()
-        .into_iter()
-        .map(|context| {
-            Ok(KubeContext {
-                name: context["name"]
-                    .as_str()
-                    .ok_or(error::Error::MalformedKubeconfig)?
-                    .to_string(),
-                context: KubeContextMetadata {
-                    namespace: context["context"]["namespace"]
-                        .as_str()
-                        .map(|it| it.to_string()),
-                },
-            })
-        })
-        .collect::<error::Result<Vec<KubeContext>>>()?;
-
-    Ok(KubeConfig {
-        current_context: document["current-context"]
-            .as_str()
-            .ok_or(error::Error::MalformedKubeconfig)?
-            .to_string(),
-        contexts: contexts.clone(),
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    mod extract_metadata {
-        use crate::{extract_metadata, KubeConfig, KubeContext, KubeContextMetadata};
-
-        #[test]
-        fn it_should_get_metadata_scenario_1() {
-            let kube_config = KubeConfig {
-                current_context: "context-from-kube-config".to_string(),
-                contexts: vec![KubeContext {
-                    name: "context-from-command".to_string(),
-                    context: KubeContextMetadata {
-                        namespace: Some("namespace-from-kube-config".to_string()),
-                    },
-                }],
-            };
-            let args = [
-                "kubectl",
-                "--context",
-                "context-from-command",
-                "get",
-                "pods",
-            ]
-            .map(|it| it.to_string())
-            .to_vec();
-            let result = extract_metadata(kube_config, &args).unwrap();
-
-            assert_eq!(result.target_context, "context-from-command");
-            assert_eq!(result.target_namespace, "namespace-from-kube-config");
-        }
-
-        #[test]
-        fn it_should_get_metadata_scenario_2() {
-            let kube_config = KubeConfig {
-                current_context: "context-from-kube-config".to_string(),
-                contexts: vec![KubeContext {
-                    name: "context-from-kube-config".to_string(),
-                    context: KubeContextMetadata {
-                        namespace: Some("namespace-from-kube-config".to_string()),
-                    },
-                }],
-            };
-            let args = ["kubectl", "get", "pods"].map(|it| it.to_string()).to_vec();
-            let result = extract_metadata(kube_config, &args).unwrap();
-
-            assert_eq!(result.target_context, "context-from-kube-config");
-            assert_eq!(result.target_namespace, "namespace-from-kube-config");
-        }
-    }
 }
