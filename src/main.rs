@@ -1,56 +1,16 @@
 use std::{
-    env,
-    error::Error,
-    fmt, fs,
+    env, fs,
     io::{self, Write},
-    process::{Command, ExitStatus},
+    process::Command,
 };
 
 use atty::Stream;
 use colored::Colorize;
 use yaml_rust2::YamlLoader;
 
-enum KubectlCheckError {
-    KubeconfigIo(io::Error),
-    KubeconfigParse(yaml_rust2::ScanError),
-    MalformedKubeconfig,
-    CurrentContextNotFound(String),
-    NoCommandSpecified,
-    NotConfirmed,
-    CommandFailed(ExitStatus),
-}
+mod error;
 
-impl fmt::Display for KubectlCheckError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            KubectlCheckError::KubeconfigIo(ref err) => {
-                write!(f, "Could not read kubeconfig: {err}")
-            }
-            KubectlCheckError::KubeconfigParse(ref err) => {
-                write!(f, "Could not parse kubeconfig: {err}")
-            }
-            KubectlCheckError::NotConfirmed => write!(f, "Execution cancelled."),
-            KubectlCheckError::CommandFailed(status) => {
-                write!(f, "{status}")
-            }
-            KubectlCheckError::MalformedKubeconfig => write!(f, "Malformed kubeconfig"),
-            KubectlCheckError::CurrentContextNotFound(current_context) => {
-                write!(f, "Context not found: {current_context}")
-            }
-            KubectlCheckError::NoCommandSpecified => write!(f, "No command for kubectl sepcified"),
-        }
-    }
-}
-impl fmt::Debug for KubectlCheckError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
-    }
-}
-impl Error for KubectlCheckError {}
-
-type KubectlCheckResult<T> = Result<T, KubectlCheckError>;
-
-fn main() -> KubectlCheckResult<()> {
+fn main() -> error::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
     if atty::is(Stream::Stdout) {
@@ -84,7 +44,7 @@ fn main() -> KubectlCheckResult<()> {
             };
 
             if buffer.trim() != "Y" {
-                return Err(KubectlCheckError::NotConfirmed);
+                return Err(error::Error::NotConfirmed);
             }
         }
     }
@@ -98,7 +58,7 @@ fn main() -> KubectlCheckResult<()> {
         return Ok(());
     }
 
-    return Err(KubectlCheckError::CommandFailed(status));
+    return Err(error::Error::CommandFailed(status));
 }
 
 #[derive(Clone, Debug)]
@@ -141,10 +101,7 @@ fn get_value(fragment: &str, prefix: &str, iter: &mut std::slice::Iter<String>) 
     }
 }
 
-fn extract_metadata(
-    kube_config: KubeConfig,
-    args: &Vec<String>,
-) -> KubectlCheckResult<KubectlMetadata> {
+fn extract_metadata(kube_config: KubeConfig, args: &Vec<String>) -> error::Result<KubectlMetadata> {
     let mut context_from_command = None;
     let mut namespace_from_command = None;
     let mut command = None;
@@ -173,9 +130,7 @@ fn extract_metadata(
             .contexts
             .iter()
             .find(|&context| context.name == target_context)
-            .ok_or(KubectlCheckError::CurrentContextNotFound(
-                target_context.clone(),
-            ))?
+            .ok_or(error::Error::CurrentContextNotFound(target_context.clone()))?
             .context
             .namespace
             .clone()
@@ -185,19 +140,19 @@ fn extract_metadata(
     Ok(KubectlMetadata {
         target_context,
         target_namespace,
-        command: command.ok_or(KubectlCheckError::NoCommandSpecified)?,
+        command: command.ok_or(error::Error::NoCommandSpecified)?,
     })
 }
 
-fn read_kube_config() -> KubectlCheckResult<KubeConfig> {
+fn read_kube_config() -> error::Result<KubeConfig> {
     let path = env::var("KUBECONFIG").unwrap_or(format!(
         "{}/.kube/config",
         env::var("HOME").unwrap_or("~".to_string())
     ));
-    let contents = fs::read_to_string(path).map_err(|err| KubectlCheckError::KubeconfigIo(err))?;
+    let contents = fs::read_to_string(path).map_err(|err| error::Error::KubeconfigIo(err))?;
 
-    let documents = YamlLoader::load_from_str(&contents)
-        .map_err(|err| KubectlCheckError::KubeconfigParse(err))?;
+    let documents =
+        YamlLoader::load_from_str(&contents).map_err(|err| error::Error::KubeconfigParse(err))?;
     let document = &documents[0];
 
     let contexts = &document["contexts"]
@@ -207,7 +162,7 @@ fn read_kube_config() -> KubectlCheckResult<KubeConfig> {
             Ok(KubeContext {
                 name: context["name"]
                     .as_str()
-                    .ok_or(KubectlCheckError::MalformedKubeconfig)?
+                    .ok_or(error::Error::MalformedKubeconfig)?
                     .to_string(),
                 context: KubeContextMetadata {
                     namespace: context["context"]["namespace"]
@@ -216,12 +171,12 @@ fn read_kube_config() -> KubectlCheckResult<KubeConfig> {
                 },
             })
         })
-        .collect::<KubectlCheckResult<Vec<KubeContext>>>()?;
+        .collect::<error::Result<Vec<KubeContext>>>()?;
 
     Ok(KubeConfig {
         current_context: document["current-context"]
             .as_str()
-            .ok_or(KubectlCheckError::MalformedKubeconfig)?
+            .ok_or(error::Error::MalformedKubeconfig)?
             .to_string(),
         contexts: contexts.clone(),
     })
