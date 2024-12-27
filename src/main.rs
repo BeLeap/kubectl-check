@@ -9,6 +9,7 @@ use colored::Colorize;
 
 mod config;
 mod error;
+mod utils;
 
 fn main() -> error::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
