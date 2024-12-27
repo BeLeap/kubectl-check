@@ -9,7 +9,6 @@ use colored::Colorize;
 
 mod config;
 mod error;
-mod utils;
 
 fn main() -> error::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -29,10 +28,10 @@ fn main() -> error::Result<()> {
             unsafe_command_list_env.split(",").collect()
         };
 
-        if unsafe_command_list.contains(&metadata.command.as_str()) {
+        if unsafe_command_list.contains(&metadata.first_command.as_str()) {
             print!(
                 "Running {} over {}({}) (Y/n): ",
-                metadata.command.as_str().red().bold(),
+                metadata.first_command.as_str().red().bold(),
                 metadata.target_context.as_str().green(),
                 metadata.target_namespace.as_str().green(),
             );
