@@ -7,12 +7,31 @@
   };
 
   outputs =
-    { self, nixpkgs }:
     {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+      in
+      {
+        packages = rec {
+          kubectl-check = pkgs.rustPlatform.buildRustPackage {
+            pname = "kubectl-check";
+            version = "0.2440.0";
+            src = ./.;
 
-      packages.x86_64-linux.hello = nixpkgs.legacyPackages.x86_64-linux.hello;
+            cargoBuildFlags = "-p kubectl-check";
 
-      packages.x86_64-linux.default = self.packages.x86_64-linux.hello;
-
-    };
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+          };
+          default = kubectl-check;
+        };
+      }
+    );
 }
