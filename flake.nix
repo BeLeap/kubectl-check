@@ -32,6 +32,7 @@
           };
           default = kubectl-check;
         };
+        devShells = import ./shell.nix { inherit pkgs; };
       }
     );
 }
