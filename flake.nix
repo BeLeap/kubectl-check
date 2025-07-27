@@ -1,5 +1,5 @@
 {
-  description = "A very basic flake";
+  description = "A CLI tool to prompt users for confirmation before running potentially unsafe kubectl commands.";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
